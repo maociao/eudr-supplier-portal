@@ -42,27 +42,45 @@ const authenticate = (req, res, next) => {
 // User registration
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
+  
+  // Check if user already exists
   if (users.find(u => u.username === username)) {
     return res.status(400).json({ error: 'Username already exists' });
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const user = { id: uuidv4(), username, password: hashedPassword };
-  users.push(user);
+  try {
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create new user
+    const newUser = { id: uuidv4(), username, password: hashedPassword };
+    users.push(newUser);
 
-  res.status(201).json({ message: 'User created successfully' });
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error registering user' });
+  }
 });
 
 // User login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const user = users.find(u => u.username === username);
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ error: 'Invalid credentials' });
+
+  if (!user) {
+    return res.status(400).json({ error: 'User not found' });
   }
 
-  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
-  res.json({ token });
+  try {
+    if (await bcrypt.compare(password, user.password)) {
+      const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+      res.json({ token });
+    } else {
+      res.status(400).json({ error: 'Invalid credentials' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Error logging in' });
+  }
 });
 
 // File upload and data submission
