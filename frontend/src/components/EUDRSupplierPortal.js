@@ -10,7 +10,10 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 
 const API_URL = 'http://localhost:8080'; // Update this when deploying
 
@@ -53,6 +56,25 @@ const EUDRSupplierPortal = () => {
     setUploadStatus(`${files.length} file(s) uploaded successfully`);
   };
 
+  const handleRemoveFile = (index) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      geoJsonFiles: prevData.geoJsonFiles.filter((_, i) => i !== index),
+    }));
+    console.log(`File removed at index ${index}`);
+  };
+
+  const clearForm = () => {
+    setFormData({
+      purchaseOrderNumber: '',
+      purchaseOrderLineNumber: '',
+      geoJsonFiles: [],
+    });
+    setUploadStatus('');
+    // We're not clearing submitStatus here anymore
+    console.log('Form cleared');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitStatus('Submitting...');
@@ -75,6 +97,7 @@ const EUDRSupplierPortal = () => {
       });
       console.log('Server response:', response.data);
       setSubmitStatus('Data submitted successfully');
+      clearForm(); // Clear form on successful submit
     } catch (error) {
       console.error('Error submitting data:', error.response?.data || error.message);
       setSubmitStatus(`Error: ${error.response?.data?.error || 'Submission failed'}`);
@@ -179,12 +202,22 @@ const EUDRSupplierPortal = () => {
         {formData.geoJsonFiles.map((file, index) => (
           <ListItem key={index}>
             <ListItemText primary={file.name} />
+            <ListItemSecondaryAction>
+              <IconButton edge="end" aria-label="delete" onClick={() => handleRemoveFile(index)}>
+                <CloseIcon />
+              </IconButton>
+            </ListItemSecondaryAction>
           </ListItem>
         ))}
       </List>
-      <Button type="submit" variant="contained" color="primary">
-        Submit
-      </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+        <Button type="submit" variant="contained" color="primary">
+          Submit
+        </Button>
+        <Button onClick={clearForm} variant="outlined" color="secondary">
+          Clear
+        </Button>
+      </Box>
     </Box>
   );
 
@@ -193,8 +226,8 @@ const EUDRSupplierPortal = () => {
       <CardContent>
         {view === 'auth' ? renderAuthView() : renderFormView()}
         {submitStatus && (
-          <Typography variant="body2" sx={{ mt: 2 }}>
-            {submitStatus}
+          <Typography variant="body2" sx={{ mt: 2, fontWeight: 'bold' }}>
+            Last submit status: {submitStatus}
           </Typography>
         )}
       </CardContent>
