@@ -79,7 +79,7 @@ Before you begin, ensure you have the following installed:
 
 ## Deployment
 
-The application is configured for deployment to Google Cloud Run. Refer to the `deployment-instructions.md` file for detailed steps on how to deploy both the frontend and backend to Google Cloud Run.
+The application is configured for deployment to Google Cloud Run. Refer to the [`deployment-instructions.md`](deployment-instructions.md) file for detailed steps on how to deploy both the frontend and backend to Google Cloud Run.
 
 ## File Structure
 
