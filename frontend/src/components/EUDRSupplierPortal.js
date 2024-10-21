@@ -7,13 +7,17 @@ import {
   TextField, 
   Button, 
   Box,
-  Modal,
-  Stack 
+  List,
+  ListItem,
+  ListItemText,
 } from '@mui/material';
 
 const API_URL = 'http://localhost:8080'; // Update this when deploying
 
 const EUDRSupplierPortal = () => {
+  const [view, setView] = useState('auth');
+  const [authMode, setAuthMode] = useState('login');
+  const [authData, setAuthData] = useState({ email: '', password: '' });
   const [formData, setFormData] = useState({
     purchaseOrderNumber: '',
     purchaseOrderLineNumber: '',
@@ -21,9 +25,16 @@ const EUDRSupplierPortal = () => {
   });
   const [submitStatus, setSubmitStatus] = useState('');
   const [token, setToken] = useState('');
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [registerData, setRegisterData] = useState({ username: '', password: '' });
+  const [uploadStatus, setUploadStatus] = useState('');
   
+  const handleAuthInputChange = (e) => {
+    const { name, value } = e.target;
+    setAuthData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -33,20 +44,19 @@ const EUDRSupplierPortal = () => {
   };
 
   const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    console.log('Files selected:', files.map(f => f.name));
     setFormData((prevData) => ({
       ...prevData,
-      geoJsonFiles: [...e.target.files],
+      geoJsonFiles: [...prevData.geoJsonFiles, ...files],
     }));
+    setUploadStatus(`${files.length} file(s) uploaded successfully`);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!token) {
-      setSubmitStatus('Please log in first');
-      return;
-    }
-
     setSubmitStatus('Submitting...');
+    console.log('Submitting form data:', formData);
 
     const formDataToSend = new FormData();
     formDataToSend.append('purchaseOrderNumber', formData.purchaseOrderNumber);
@@ -56,147 +66,138 @@ const EUDRSupplierPortal = () => {
     });
 
     try {
+      console.log('Sending request to server...');
       const response = await axios.post(`${API_URL}/submit`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log('Server response:', response.data);
       setSubmitStatus('Data submitted successfully');
     } catch (error) {
-      setSubmitStatus(`Error: ${error.response && error.response.data && error.response.data.error ? error.response.data.error : 'Submission failed'}`);
+      console.error('Error submitting data:', error.response?.data || error.message);
+      setSubmitStatus(`Error: ${error.response?.data?.error || 'Submission failed'}`);
     }
   };
 
-  const handleRegisterOpen = () => setIsRegisterModalOpen(true);
-  const handleRegisterClose = () => setIsRegisterModalOpen(false);
-
-  const handleRegisterInputChange = (e) => {
-    const { name, value } = e.target;
-    setRegisterData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
-  const handleRegister = async () => {
+  const handleAuth = async () => {
     try {
-      const response = await axios.post(`${API_URL}/register`, registerData);
-      setSubmitStatus('Registration successful. Please login.');
-      handleRegisterClose();
+      console.log(`Attempting ${authMode}...`);
+      const response = await axios.post(`${API_URL}/${authMode}`, authData);
+      console.log(`${authMode} response:`, response.data);
+      if (authMode === 'register') {
+        setSubmitStatus('Registration successful. Please login.');
+        setAuthMode('login');
+      } else {
+        setToken(response.data.token);
+        setView('form');
+        setSubmitStatus('Logged in successfully');
+      }
     } catch (error) {
-      setSubmitStatus(`Registration failed: ${error.response?.data?.error || 'Unknown error'}`);
+      console.error(`${authMode} error:`, error.response?.data || error.message);
+      setSubmitStatus(`${authMode === 'register' ? 'Registration' : 'Login'} failed: ${error.response?.data?.error || 'Unknown error'}`);
     }
   };
 
-  const handleLogin = async () => {
-    try {
-      const response = await axios.post(`${API_URL}/login`, {
-        username: registerData.username,
-        password: registerData.password,
-      });
-      setToken(response.data.token);
-      setSubmitStatus('Logged in successfully');
-    } catch (error) {
-      setSubmitStatus('Login failed');
-    }
-  };
+  const renderAuthView = () => (
+    <Box>
+      <Typography variant="h5" component="div" gutterBottom>
+        {authMode === 'register' ? 'Register' : 'Login'}
+      </Typography>
+      <TextField
+        fullWidth
+        margin="normal"
+        label="Email"
+        name="email"
+        type="email"
+        value={authData.email}
+        onChange={handleAuthInputChange}
+      />
+      <TextField
+        fullWidth
+        margin="normal"
+        label="Password"
+        name="password"
+        type="password"
+        value={authData.password}
+        onChange={handleAuthInputChange}
+      />
+      <Button onClick={handleAuth} variant="contained" sx={{ mt: 2 }}>
+        {authMode === 'register' ? 'Register' : 'Login'}
+      </Button>
+      <Button 
+        onClick={() => setAuthMode(authMode === 'register' ? 'login' : 'register')} 
+        variant="text" 
+        sx={{ mt: 2, ml: 2 }}
+      >
+        {authMode === 'register' ? 'Switch to Login' : 'Switch to Register'}
+      </Button>
+    </Box>
+  );
+
+  const renderFormView = () => (
+    <Box component="form" onSubmit={handleSubmit} sx={{ '& > :not(style)': { m: 1 } }}>
+      <Typography variant="body1" gutterBottom>
+        Logged in as: {authData.email}
+      </Typography>
+      <TextField
+        fullWidth
+        label="Purchase Order Number"
+        name="purchaseOrderNumber"
+        value={formData.purchaseOrderNumber}
+        onChange={handleInputChange}
+        required
+      />
+      <TextField
+        fullWidth
+        label="Purchase Order Line Number"
+        name="purchaseOrderLineNumber"
+        value={formData.purchaseOrderLineNumber}
+        onChange={handleInputChange}
+        required
+      />
+      <input
+        accept=".json,.geojson"
+        style={{ display: 'none' }}
+        id="raised-button-file"
+        multiple
+        type="file"
+        onChange={handleFileChange}
+      />
+      <label htmlFor="raised-button-file">
+        <Button variant="contained" component="span">
+          Upload GeoJSON Files
+        </Button>
+      </label>
+      {uploadStatus && (
+        <Typography variant="body2" sx={{ mt: 1 }}>
+          {uploadStatus}
+        </Typography>
+      )}
+      <List>
+        {formData.geoJsonFiles.map((file, index) => (
+          <ListItem key={index}>
+            <ListItemText primary={file.name} />
+          </ListItem>
+        ))}
+      </List>
+      <Button type="submit" variant="contained" color="primary">
+        Submit
+      </Button>
+    </Box>
+  );
 
   return (
     <Card sx={{ maxWidth: 400, margin: 'auto', mt: 4 }}>
       <CardContent>
-        <Typography variant="h5" component="div" gutterBottom>
-          Supplier Data Submission
-        </Typography>
-        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-          <Button onClick={handleRegisterOpen} variant="outlined">
-            Register
-          </Button>
-          <Button onClick={handleLogin} variant="contained">
-            Login
-          </Button>
-        </Stack>
-                <Box component="form" onSubmit={handleSubmit} sx={{ '& > :not(style)': { m: 1 } }}>
-          <TextField
-            fullWidth
-            label="Purchase Order Number"
-            name="purchaseOrderNumber"
-            value={formData.purchaseOrderNumber}
-            onChange={handleInputChange}
-            required
-          />
-          <TextField
-            fullWidth
-            label="Purchase Order Line Number"
-            name="purchaseOrderLineNumber"
-            value={formData.purchaseOrderLineNumber}
-            onChange={handleInputChange}
-            required
-          />
-          <input
-            accept=".json,.geojson"
-            style={{ display: 'none' }}
-            id="raised-button-file"
-            multiple
-            type="file"
-            onChange={handleFileChange}
-          />
-          <label htmlFor="raised-button-file">
-            <Button variant="contained" component="span">
-              Upload GeoJSON Files
-            </Button>
-          </label>
-          <Button type="submit" variant="contained" color="primary">
-            Submit
-          </Button>
-        </Box>
+        {view === 'auth' ? renderAuthView() : renderFormView()}
         {submitStatus && (
           <Typography variant="body2" sx={{ mt: 2 }}>
             {submitStatus}
           </Typography>
         )}
       </CardContent>
-
-      <Modal
-        open={isRegisterModalOpen}
-        onClose={handleRegisterClose}
-        aria-labelledby="register-modal-title"
-      >
-        <Box sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 300,
-          bgcolor: 'background.paper',
-          boxShadow: 24,
-          p: 4,
-        }}>
-          <Typography id="register-modal-title" variant="h6" component="h2" gutterBottom>
-            Register New User
-          </Typography>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Username"
-            name="username"
-            value={registerData.username}
-            onChange={handleRegisterInputChange}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Password"
-            name="password"
-            type="password"
-            value={registerData.password}
-            onChange={handleRegisterInputChange}
-          />
-          <Button onClick={handleRegister} variant="contained" sx={{ mt: 2 }}>
-            Register
-          </Button>
-        </Box>
-      </Modal>
     </Card>
   );
 };
