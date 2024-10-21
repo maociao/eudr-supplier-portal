@@ -16,7 +16,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 
 // Use environment variable for API_URL, with a fallback for local development
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_URL = window.REACT_APP_API_URL || 'http://localhost:8080';
 
 const EUDRSupplierPortal = () => {
   const [view, setView] = useState('auth');
@@ -89,7 +89,7 @@ const EUDRSupplierPortal = () => {
     });
 
     try {
-      console.log('Sending request to server...');
+      console.log('Sending request to server:', API_URL);
       const response = await axios.post(`${API_URL}/submit`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',

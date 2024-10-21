@@ -21,17 +21,19 @@ FROM nginx:stable-alpine
 
 # Copy the build output to replace the default nginx contents.
 COPY --from=build /app/build /usr/share/nginx/html
-COPY --from=build /app/env.sh /docker-entrypoint.d/
-COPY --from=build /app/.env /app/.env
 
 # Copy the nginx configuration file
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Make our shell script executable
-RUN chmod +x /docker-entrypoint.d/env.sh
+# Create the entrypoint script
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'sed -i "s|REACT_APP_API_URL_PLACEHOLDER|$REACT_APP_API_URL|g" /usr/share/nginx/html/index.html' >> /docker-entrypoint.sh && \
+    echo 'sed -i -e "s/\$PORT/$PORT/g" /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
 
 # Expose port 8080
 EXPOSE 8080
 
-# Use shell form of CMD to invoke bash to evaluate $PORT and run our custom script
-CMD ["/bin/sh", "-c", "/docker-entrypoint.d/env.sh && sed -i -e 's/$PORT/'"$PORT"'/g' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# Run the shell script when the container starts
+CMD ["/docker-entrypoint.sh"]
