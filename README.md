@@ -34,7 +34,16 @@ Before you begin, ensure you have the following installed:
    git clone https://github.com/maociao/eudr-supplier-portal.git
    cd eudr-supplier-portal
    ```
-"/bin/sh", "-c", 
+
+2. Set up the backend:
+   ```
+   cd backend
+   npm install
+   ```
+
+3. Set up the frontend:
+   ```
+   cd ../frontend
    npm install
    ```
 
