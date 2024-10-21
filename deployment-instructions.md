@@ -44,6 +44,7 @@ gcloud run deploy eudr-supplier-portal-fe \
   --image gcr.io/YOUR_PROJECT_ID/eudr-supplier-portal-fe \
   --platform managed \
   --region us-central1 \
+  --set-env-vars REACT_APP_API_URL=https://your-backend-url \
   --allow-unauthenticated
 ```
 

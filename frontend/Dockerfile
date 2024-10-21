@@ -21,9 +21,17 @@ FROM nginx:stable-alpine
 
 # Copy the build output to replace the default nginx contents.
 COPY --from=build /app/build /usr/share/nginx/html
+COPY --from=build /app/env.sh /docker-entrypoint.d/
+COPY --from=build /app/.env /app/.env
 
-# Expose port 80
-EXPOSE 80
+# Copy the nginx configuration file
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Start Nginx and keep it running in the foreground
-CMD ["nginx", "-g", "daemon off;"]
+# Make our shell script executable
+RUN chmod +x /docker-entrypoint.d/env.sh
+
+# Expose port 8080
+EXPOSE 8080
+
+# Use shell form of CMD to invoke bash to evaluate $PORT and run our custom script
+CMD ["/bin/sh", "-c", "/docker-entrypoint.d/env.sh && sed -i -e 's/$PORT/'"$PORT"'/g' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

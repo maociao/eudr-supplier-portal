@@ -15,7 +15,8 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 
-const API_URL = 'http://localhost:8080'; // Update this when deploying
+// Use environment variable for API_URL, with a fallback for local development
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 const EUDRSupplierPortal = () => {
   const [view, setView] = useState('auth');
